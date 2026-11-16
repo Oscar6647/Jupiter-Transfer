@@ -77,23 +77,3 @@ def JPL_request(start_utc, stop_utc, step,outfile, bodies=PLANETS,**overrides):
         f.write(csv_data)
     return csv_data
 
-
-
-
-
-#Examples
-#Wide Scan
-#JPL_request(datetime(2026, 11, 8, 0, 0), datetime(2026, 11, 18, 23, 50))
-#JPL_request(local_to_utc_gz1(datetime(2026, 11, 16, 5, 00)), local_to_utc_gz1(datetime(2026, 11, 16, 6, 30)), step="1 min",outfile="event_ephemeris_candidate_gz1.csv",SKIP_DAYLT="YES")
-#angular_separation_analysis("event_ephemeris_candidate_gz1.csv","angular_separation_candidate_gz1.csv")   
-#ts = per_timestamp("angular_separation_candidate_gz1.csv")
-#nights = best_nights(ts,min_elev=5, max_sun=-12)
-#print(nights)
-#night = nights.index[0]            # a datetime.date, the best night
-#d, b = best_time_window(ts, night, metric="S", tol=100,min_elev=5, max_sun=-12,max_gap_h=1.5)                    # worst-pair spread
-#print(d)
-#print(b)
-#PEAK = d.loc[d["S"].idxmin(), "dt"]
-#print("this is peak:",PEAK)
-#print(len(d))
-#print(d[["dt", "S", "S_mean", "S_min", "min_elev", "sun_elev"]].to_string())
