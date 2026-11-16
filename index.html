@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Earth → Jupiter: Transfer Orbits</title>
+<link rel="icon" href="argonaut_logo.png">
+<style>
+:root{--bg:#03040a;--fg:#e8ecff;--dim:#8d96c4;--acc:#ffb347;--red:#ff6a5a;--grn:#5cff9a;--pan:rgba(12,16,40,.74)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.p{position:fixed;background:var(--pan);backdrop-filter:blur(8px);border:1px solid rgba(140,160,255,.2);border-radius:12px;padding:12px 14px;box-sizing:border-box}
+b{color:var(--fg)}
+#hud{top:calc(12px + env(safe-area-inset-top,0px));left:12px;width:360px;display:flex;gap:10px}
+#hud h1{margin:0 0 6px;font-size:15px;letter-spacing:.03em;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.logo{width:28px;height:28px;flex:none;filter:drop-shadow(0 0 6px rgba(255,179,71,.35))}
+#hud .d{font-size:22px;color:var(--acc);font-variant-numeric:tabular-nums}
+#hud .k{color:var(--dim);font-size:12px;margin-top:5px}#st{min-height:30px}
+#hud .v{font-size:17px;font-variant-numeric:tabular-nums}
+#hud canvas{width:130px;height:150px;flex:none}
+#ch{top:calc(244px + env(safe-area-inset-top,0px));left:12px;width:360px;padding:8px}#ch canvas{width:100%;display:block;cursor:pointer}
+#ctl{bottom:calc(12px + env(safe-area-inset-bottom,0px));left:12px;right:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
+#ctl input[type=range]{flex:1 1 200px;accent-color:var(--acc)}
+button,select{background:#1a2150;color:var(--fg);border:1px solid rgba(140,160,255,.35);border-radius:8px;padding:7px 11px;font:inherit;cursor:pointer}
+button:hover{background:#262f78}button.on{background:var(--acc);color:#111;border-color:var(--acc)}
+#pk{top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:290px;font-size:12px;color:var(--dim)}
+#pk canvas{width:100%;border-radius:6px;display:block;margin:6px 0;cursor:crosshair}
+#pkt{min-height:30px;line-height:1.4}
+#ds{bottom:calc(76px + env(safe-area-inset-bottom,0px));right:12px;width:290px;font-size:12px;color:var(--dim);max-height:calc(100vh - 490px);min-height:150px;overflow:auto}
+#ds .row{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}#ds .row button{padding:5px 7px;font-size:12px}
+#ds input[type=range]{width:100%;accent-color:var(--red)}
+#dsi{display:grid;grid-template-columns:auto auto;gap:1px 10px;line-height:1.45;font-variant-numeric:tabular-nums}#dsi b{color:var(--acc);text-align:right}#dsi .w{grid-column:1/3;color:var(--fg);font-weight:600}
+#cap{bottom:calc(76px + env(safe-area-inset-bottom,0px));left:12px;max-width:min(460px,calc(100vw - 340px));display:none;line-height:1.45}
+#cap b{color:var(--acc)}
+.ov{top:50%;left:50%;transform:translate(-50%,-50%);width:min(640px,calc(100vw - 32px));max-height:78vh;overflow:auto;display:none;line-height:1.5;z-index:5}
+.ov b{color:var(--acc)}
+#jc{top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:250px;padding:8px;display:none;text-align:center;font-size:12px;color:var(--dim);line-height:1.4}
+#jc canvas{width:100%;display:block;border-radius:8px}#jc b{color:var(--acc)}
+#flash{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;font-size:clamp(40px,9vw,110px);font-weight:800;letter-spacing:.12em;color:#fff;text-shadow:0 0 40px #ffb347,0 0 90px #ff7a2a;opacity:0;transition:opacity 1s}
+.lg{display:inline-block;width:10px;height:3px;vertical-align:middle;margin-right:4px}
+#hc{top:calc(12px + env(safe-area-inset-top,0px));right:12px;width:290px;font-size:12px;color:var(--dim);display:none}#hc canvas{width:100%;display:block;margin-top:6px;border-radius:6px;cursor:pointer}
+#hm{bottom:calc(76px + env(safe-area-inset-bottom,0px));right:12px;width:290px;font-size:12px;color:var(--dim);display:none;max-height:calc(100vh - 430px);min-height:150px;overflow:auto}
+#hmb{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}#hmb button{padding:4px 7px;font-size:11px}
+#hmi .g{display:grid;grid-template-columns:auto auto;gap:1px 8px}#hmi .g b{color:var(--acc);text-align:right}
+#hmi .good{color:var(--grn);font-weight:600}#hmi .warn{color:#ff9a7a;font-weight:600}#hmi .ok2{color:#9fd3ff;font-weight:600}
+#hev .ev{border-left:2px solid rgba(140,160,255,.3);padding:2px 0 2px 7px;margin:4px 0;cursor:pointer;opacity:.6}#hev .ev.past{opacity:1;border-color:var(--acc)}#hev .ev b{color:var(--fg)}
+@media(max-height:820px){#ch{display:none}}
+@media(max-width:900px){#ch,#pk{display:none}#ds{max-height:40vh}#cap{max-width:calc(100vw - 32px);bottom:calc(140px + env(safe-area-inset-bottom,0px))}}
+@media(max-width:600px){#ds{display:none}#hud{width:auto}#jc{left:auto;right:12px;transform:none;width:160px}}
+</style></head><body>
+<canvas id="c"></canvas>
+
+<div class="p" id="hud"><div style="flex:1">
+<h1><img src="argonaut_logo.png" class="logo" alt="Project Argonaut logo">EARTH → JUPITER</h1><div class="d" id="date"></div>
+<div class="k" id="k1">Earth–Jupiter phase angle</div><div class="v" id="v1"></div>
+<div class="k" id="k2">Earth–Jupiter distance</div><div class="v" id="v2"></div>
+<div class="k" id="st"></div><div class="v" id="tm" style="color:var(--acc);margin-top:3px;font-size:15px"></div></div>
+<canvas id="dial" width="260" height="300" title="Phase angle dial"></canvas></div>
+
+<div class="p" id="ch"><canvas id="chc" width="640" height="300"></canvas></div>
+
+<div class="p" id="pk"><b>Porkchop plot</b> · launch C3, Earth → Jupiter
+<canvas id="pc" width="300" height="292"></canvas>
+<div><span class="lg" style="background:#ff4040"></span>min C3 &nbsp;<span class="lg" style="background:#fff"></span>Hohmann window &nbsp;<span class="lg" style="background:#5cff9a"></span>selected</div>
+<div id="pkt"></div></div>
+
+<div class="p" id="ds"><b>Transfer designer</b>
+<div class="row"><button class="m" data-k="hoh">Hohmann</button><button class="m" data-k="now">Depart now</button><button class="m" data-k="best">Porkchop best</button></div>
+<div id="tofw"><div style="display:flex;justify-content:space-between"><span>Time of flight</span><b id="tofv"></b></div>
+<input type="range" id="tof" min="0.8" max="3.2" step="0.01" value="1.6">
+<div class="row"><button id="tbb">Textbook orbits (1 AU / 5.2 AU, φ₀ = 120°)</button></div></div>
+<div id="dsi"></div>
+<div class="row"><button id="why">Why does this work?</button></div></div>
+
+<div class="p" id="hc"><b>Launch energy vs trip time</b> · real missions vs my Lambert<canvas id="hcv" width="300" height="250"></canvas></div>
+<div class="p" id="hm"><b>🛰 NASA missions to Jupiter</b> · JPL Horizons<div id="hmb"></div><div id="hmi"></div></div>
+<div class="p" id="cap"></div><div id="flash"></div>
+<div class="p" id="jc"><canvas id="jcv" width="250" height="250"></canvas><div id="jct"></div></div>
+
+<div class="p" id="ctl">
+<button id="play">⏸ Pause</button>
+<select id="rate"><option value="5">5 d/s</option><option value="30" selected>30 d/s</option><option value="90">90 d/s</option><option value="365">1 yr/s</option></select>
+<input type="range" id="sl" min="0" max="2400" step="0.01" value="0">
+<button id="bo">Overview</button><button id="bi">Top-down</button><button id="bf">🎥 Ride along</button><button id="bh">🛰 NASA missions</button><button id="bs">🎬 Story ▶</button>
+</div>
+
+<div class="p ov" id="wy"><b>Why the Hohmann transfer is the cheapest way out</b>
+<p>The spacecraft starts with Earth's speed around the Sun (29.8 km/s). One burn along the direction of motion stretches its orbit into an ellipse. <b>Perihelion</b> touches Earth's orbit and <b>aphelion</b> touches Jupiter's: a = (1 + 5.2)/2 = 3.1 AU, e = 0.677. Burning tangentially is the most efficient way to add orbital energy, which is why the Hohmann transfer costs least.</p>
+<p><b>Timing.</b> A half-ellipse takes TOF = π√(a³/μ) ≈ 2.73 yr. In that time Jupiter moves about 83° along its orbit, so it has to be <b>97°</b> ahead of Earth at launch. That geometry comes back once every synodic period, about <b>1.09 yr</b>. Miss it and you wait about 13 months.</p>
+<p><b>Faster trips (Lambert).</b> Pick any launch date and arrival date and Lambert's problem returns the one conic that joins Earth-then to Jupiter-then. Shorter trips need much bigger ellipses. Below about 1.1 yr the orbit becomes a <b>hyperbola</b>, meaning the spacecraft leaves the Sun's gravity entirely.</p>
+<p><b>Porkchop plot.</b> Each pixel is one Lambert solve using the real JPL orbits. The valley floor is the cheapest launch. Real Jupiter is at 4.95 AU (perihelion), not 5.2, and its orbit is tilted. Even so, the minimum lands within days of the date the textbook Hohmann phase rule predicts.</p>
+<p><b>Arriving.</b> The spacecraft reaches Jupiter at aphelion, where it is slower than Jupiter. Jupiter catches up with it at v∞ ≈ 6 km/s. A short braking burn deep in Jupiter's gravity well (the <b>Oberth effect</b>) is enough to be captured. Juno's capture burn in 2016 was 0.54 km/s.</p>
+<p style="color:var(--dim)">Model: two-body Sun-only conics (patched-conic, no Jupiter gravity on approach), JPL osculating elements at 2026-11-15. A design study, not a flight plan.</p><i>Click to close</i></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="data.js"></script>
+<script src="physics.js"></script>
+<script src="history.js"></script>
+<script>
+const D=DATA,P=PHYS,{MU,YR,KMS,JD0,D2R,TAU,nrm,dot,sub,scl,cross}=P,$=id=>document.getElementById(id);
+const AU=1.495978707e8,SPAN=2400,fd=jd=>new Date((jd-2440587.5)*864e5).toISOString().slice(0,10);
+const ang=(p,q)=>{let a=(Math.atan2(q[1],q[0])-Math.atan2(p[1],p[0]))/D2R;return(a%360+360)%360};
+// ------------------------------------------------ self-check: JS port vs numbers your Python produced
+const CHK=(()=>{let m=0;for(const c of D.check)m=Math.max(m,nrm(sub(P.state(399,JD0+c.d)[0],c.earth)),nrm(sub(P.state(599,JD0+c.d)[0],c.jup)));
+ const b=D.best,[rE]=P.state(399,b.jd_l),[rJ]=P.state(599,b.jd_a),s=P.lambert(rE,rJ,(b.jd_a-b.jd_l)/YR);return{eph:m,lam:nrm(sub(s[0],b.v1))*KMS*1000}})();
+
+// ------------------------------------------------ transfers
+let TB=false,cur=null,mode='best';
+const H_TB=P.hohmann(D.assumed.R[399],D.assumed.R[599]);
+function build(o){const T=(o.jdA-o.jdL)/YR,[rE,vE]=P.state(399,o.jdL,TB),[rJ,vJ]=P.state(599,o.jdA,TB);o.r1=rE;o.r2=rJ;o.vE=vE;o.vJ=vJ;o.tb=TB;
+ if(!o.v1){const s=P.lambert(rE,rJ,T);if(!s)return null;o.v1=s[0]}
+ Object.assign(o,P.elements(rE,o.v1));const tr=P.propagate(rE,o.v1,T,900);o.P=tr.P;o.V=tr.V;
+ o.dv=nrm(sub(o.v1,vE))*KMS;o.C3=o.dv*o.dv;o.vinf=nrm(sub(tr.V[900],vJ))*KMS;o.miss=nrm(sub(tr.P[900],rJ));o.dth=ang(rE,rJ);
+ o.full=o.e<1?P.propagate(rE,o.v1,TAU*Math.sqrt(o.a**3/MU),500).P:P.propagate(rE,o.v1,T*2.2,400).P;
+ const pJ0=P.state(599,o.jdL,TB)[0];o.pJ0=pJ0;o.phiL=ang(rE,pJ0);return o}
+function mkHoh(){TB=true;const nE=H_TB.nE,nJ=H_TB.nJ;let w=((D.assumed.phi-H_TB.phi)*D2R)/(nE-nJ);if(w<0)w+=H_TB.syn;
+ const jdL=JD0+w*YR,[rE]=P.circState(399,jdL),t=[-rE[1],rE[0],0].map(x=>x/nrm(rE));
+ return build({kind:'hoh',label:'Hohmann (textbook)',jdL,jdA:jdL+H_TB.tof*YR,v1:scl(t,H_TB.vp)})}
+const mkNow=tof=>build({kind:'now',label:'Depart now · Lambert',jdL:JD0,jdA:JD0+tof*YR});
+const mkLam=(jdL,jdA,label,kind)=>{TB=false;return build({kind,label,jdL,jdA})};
+const mkBest=()=>mkLam(D.best.jd_l,D.best.jd_a,'Porkchop minimum (real JPL)','best');
+
+// ------------------------------------------------ 3D scene
+const cv=$('c'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.002,3000);cam.up.set(0,0,1);
+function glow(col,size){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,0,64,64,64);
+ gr.addColorStop(0,col);gr.addColorStop(.25,col.replace('1)','.35)'));gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false}));s.userData.size=size;sc.add(s);return s}
+function line(col,op,dash){const m=dash?new THREE.LineDashedMaterial({color:col,transparent:true,opacity:op,dashSize:.12,gapSize:.1}):new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op});
+ const l=new THREE.Line(new THREE.BufferGeometry(),m);l.frustumCulled=false;sc.add(l);l.set=pts=>{l.geometry.dispose();l.geometry=new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));if(dash)l.computeLineDistances()};return l}
+{const N=1800,a=new Float32Array(N*3);for(let i=0;i<N;i++){const u=Math.random()*2-1,t=Math.random()*TAU,s=Math.sqrt(1-u*u);a.set([900*s*Math.cos(t),900*s*Math.sin(t),900*u],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));sc.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xaabbff,size:1.5,sizeAttenuation:false})))}
+{const N=2600,a=new Float32Array(N*3);for(let i=0;i<N;i++){const r=2.15+Math.random()*1.15,t=Math.random()*TAU;a.set([r*Math.cos(t),r*Math.sin(t),(Math.random()-.5)*.25*r/3],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));sc.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8a7f70,size:1.2,sizeAttenuation:false,transparent:true,opacity:.6})))}
+const sun=glow('rgba(255,210,100,1)',.06),earthS=glow('rgba(90,170,255,1)',.026),jupS=glow('rgba(255,190,120,1)',.042),craft=glow('rgba(255,90,90,1)',.024),
+ mkL=glow('rgba(90,255,150,1)',.02),mkA=glow('rgba(255,160,60,1)',.03);
+const orbE=line(0x4a90ff,.5),orbJ=line(0xffa050,.5),arcL=line(0xff5a4a,1),fullL=line(0xaaaaaa,.35,true),hohL=line(0xffffff,.35,true),
+ phE=line(0x4a90ff,.35),phJ=line(0xffa050,.35),trailJ=line(0xffa050,.9);
+function setOrbits(){const f=b=>{const el=D.EL[b],per=TAU*el.A**1.5/P.K,out=[];for(let i=0;i<=600;i++)out.push(P.state(b,JD0+i/600*per,TB)[0]);return out};orbE.set(f(399));orbJ.set(f(599))}
+
+// ------------------------------------------------ camera
+let th=-1.2,ph=.9,dist=16,distT=16,cine=false,follow=false,flashed=false,flashUntil=0,scene=-1;const tgt=new THREE.Vector3(),tgtT=new THREE.Vector3();
+cv.addEventListener('pointermove',ev=>{if(ev.buttons){th-=ev.movementX*.005;ph=Math.max(.02,Math.min(3.12,ph-ev.movementY*.005))}});
+cv.addEventListener('wheel',ev=>{ev.preventDefault();distT=Math.max(.05,Math.min(80,distT*Math.exp(ev.deltaY*.001)))},{passive:false});
+
+// ------------------------------------------------ time
+const sl=$('sl');let jd=JD0,playing=true,last=performance.now();
+const setT=t=>{jd=t;sl.value=t-JD0};
+sl.oninput=()=>{jd=(window.HV&&HV.on?HV.base():JD0)+ +sl.value};
+const setPlay=p=>{playing=p;$('play').textContent=p?'⏸ Pause':'▶ Play'};
+$('play').onclick=()=>setPlay(!playing);
+
+// ------------------------------------------------ transfer designer
+function select(m,keepTime){mode=m;cur=m=='hoh'?mkHoh():m=='best'?mkBest():m=='pick'?cur:mkNow(+$('tof').value);
+ if(!cur){mode='best';cur=mkBest()}
+ TB=cur.tb;setOrbits();arcL.set(cur.P);fullL.set(cur.full);
+ if(TB){const h=[],[rE]=P.circState(399,cur.jdL),t0=Math.atan2(rE[1],rE[0]);for(let i=0;i<=200;i++){const nu=i/200*Math.PI,r=H_TB.a*(1-H_TB.e**2)/(1+H_TB.e*Math.cos(nu));h.push([r*Math.cos(nu+t0),r*Math.sin(nu+t0),0])}hohL.set(h)}
+ hohL.visible=TB&&cur.kind!='hoh';
+ const tj=[];for(let i=0;i<=120;i++)tj.push(P.state(599,cur.jdL+i/120*(cur.jdA-cur.jdL),TB)[0]);trailJ.set(tj);
+ document.querySelectorAll('#ds .m').forEach(b=>b.classList.toggle('on',b.dataset.k==mode));
+ $('tofw').style.display=mode=='now'?'block':'none';$('tbb').classList.toggle('on',TB);$('tofv').textContent=(+$('tof').value).toFixed(2)+' yr';
+ info();drawPk();buildChart();if(!keepTime)setT(cur.jdL-20);flashed=false}
+function info(){const c=cur,hy=c.e>=1,rows=[['Transfer',c.label],['Planets',c.tb?'textbook circles':'real JPL orbits'],
+ ['Launch',fd(c.jdL)],['Phase φ at launch',c.phiL.toFixed(1)+'°'],['Arrival',fd(c.jdA)],['Time of flight',((c.jdA-c.jdL)/YR).toFixed(2)+' yr ('+Math.round(c.jdA-c.jdL)+' d)'],
+ ['Transfer angle Δθ',c.dth.toFixed(1)+'°'],['Semi-major axis a',hy?c.a.toFixed(2)+' AU (hyperbola!)':c.a.toFixed(3)+' AU'],['Eccentricity e',c.e.toFixed(3)+(hy?' > 1':'')],
+ ['Departure Δv (v∞)',c.dv.toFixed(2)+' km/s'],['Launch C3',c.C3.toFixed(1)+' km²/s²'],['Arrival v∞ at Jupiter',c.vinf.toFixed(2)+' km/s'],['Arrival miss',c.miss.toExponential(1)+' AU']];
+ $('dsi').innerHTML='<span class="w">'+c.label+(c.tb?' · textbook':' · real JPL')+'</span>'+rows.slice(2).map(r=>'<span>'+r[0]+'</span><b>'+r[1]+'</b>').join('')}
+document.querySelectorAll('#ds .m').forEach(b=>b.onclick=()=>{cine=false;select(b.dataset.k);setPlay(true)});
+$('tof').oninput=()=>{if(mode=='now')select('now',true)};
+$('tbb').onclick=()=>{TB=!TB;select('now',true)};
+$('why').onclick=()=>$('wy').style.display='block';$('wy').onclick=()=>$('wy').style.display='none';
+
+
+// ------------------------------------------------ porkchop (grid straight from Python)
+const PK=D.porkchop,NL=PK.launch_days.length,NA=PK.arrive_days.length,pc=$('pc').getContext('2d'),CW=3,CH=2,pkImg=document.createElement('canvas');
+pkImg.width=300;pkImg.height=292;
+(function(){const g=pkImg.getContext('2d');g.fillStyle='#050714';g.fillRect(0,0,300,292);
+ for(let j=0;j<NA;j++)for(let i=0;i<NL;i++){const c=PK.C3[j][i];if(c==null||c>=400)continue;const t=Math.max(0,(c-70)/330);
+  g.fillStyle=`hsl(${55+t*220},80%,${60-t*30}%)`;g.fillRect(i*CW,(NA-1-j)*CH,CW,CH)}
+ // contour-ish ticks + axis labels
+ g.font='10px system-ui';g.fillStyle='rgba(255,255,255,.75)';
+ for(let y=2027;y<=2029;y++){const d=(Date.UTC(y,0,1)/864e5+2440587.5)-JD0,x=d/7*CW;if(x>0&&x<300){g.fillRect(x,286,1,6);g.fillText(y,x+2,288)}}
+ for(let y=2028;y<=2031;y++){const d=(Date.UTC(y,0,1)/864e5+2440587.5)-JD0,yy=(NA-1-(d-365)/10)*CH;if(yy>0&&yy<292){g.fillRect(0,yy,6,1);g.fillText(y,8,yy+4)}}
+ g.fillText('launch →',250,280);g.save();g.translate(10,60);g.rotate(-Math.PI/2);g.fillText('arrival →',0,0);g.restore()})();
+const cell=(dl,da)=>[dl/7*CW+CW/2,(NA-1-(da-365)/10)*CH+CH/2];
+function drawPk(){pc.drawImage(pkImg,0,0);const X=(x,y,s,c,w)=>{pc.strokeStyle=c;pc.lineWidth=w;pc.beginPath();pc.moveTo(x-s,y);pc.lineTo(x+s,y);pc.moveTo(x,y-s);pc.lineTo(x,y+s);pc.stroke()};
+ const [bx,by]=cell(D.best.i*7,365+D.best.j*10);X(bx,by,7,'#000',4);X(bx,by,7,'#ff4040',2);
+ const [hx,hy]=cell(D.t_wait_yr*YR,D.t_wait_yr*YR+D.hohmann.real.tof*YR);pc.strokeStyle='#fff';pc.lineWidth=2;pc.beginPath();pc.arc(hx,hy,5,0,TAU);pc.stroke();
+ if(cur&&!cur.tb){const [sx,sy]=cell(cur.jdL-JD0,cur.jdA-JD0);if(sx>=0&&sx<=300&&sy>=0&&sy<=292){pc.strokeStyle='#5cff9a';pc.lineWidth=2;pc.strokeRect(sx-5,sy-5,10,10)}}}
+function pkAt(ev){const b=ev.target.getBoundingClientRect(),i=Math.floor((ev.clientX-b.left)/b.width*300/CW),j=NA-1-Math.floor((ev.clientY-b.top)/b.height*292/CH);
+ if(i<0||i>=NL||j<0||j>=NA)return null;return{i,j,c:PK.C3[j][i],v:PK.VIN[j][i],dl:PK.launch_days[i],da:PK.arrive_days[j]}}
+$('pc').onmousemove=ev=>{const q=pkAt(ev);if(!q)return;$('pkt').innerHTML=q.c==null?'no prograde solution here':`Launch <b>${fd(JD0+q.dl)}</b> · arrive <b>${fd(JD0+q.da)}</b><br>C3 <b>${q.c.toFixed(0)}</b> km²/s² · v∞ <b>${q.v.toFixed(1)}</b> km/s · click to fly it`};
+$('pc').onmouseleave=()=>pkDefault();
+$('pc').onclick=ev=>{const q=pkAt(ev);if(!q||q.c==null)return;cine=false;const t=mkLam(JD0+q.dl,JD0+q.da,'Picked from porkchop','pick');if(!t)return;cur=t;select('pick');setPlay(true)};
+const pkDefault=()=>$('pkt').innerHTML=`${PK.valid.toLocaleString()} Lambert solutions on real orbits. Min C3 <b>${D.best.C3.toFixed(0)}</b> on ${D.best.launch}; Hohmann rule predicts <b>${D.window}</b>.`;
+pkDefault();
+
+// ------------------------------------------------ chart: spacecraft r(t), v(t) on the current transfer
+const CX=$('chc').getContext('2d'),chS=document.createElement('canvas');chS.width=640;chS.height=300;let chMax={};
+function buildChart(){const g=chS.getContext('2d'),c=cur,N=c.P.length-1,rs=c.P.map(nrm),vs=c.V.map(v=>nrm(v)*KMS);g.clearRect(0,0,640,300);g.font='19px system-ui';
+ const mr=Math.max(...rs,5.6)*1.05,mv=Math.max(...vs,14)*1.05;chMax={mr,mv,rs,vs,N};
+ [[rs,mr,'Spacecraft distance from Sun (au)','#ffb347',0,[[1,'Earth','#4a90ff'],[c.tb?5.2:D.EL[599].A,'Jupiter','#ffa050']]],[vs,mv,'Heliocentric speed (km/s)','#7fd0ff',150,[[29.8,'Earth 29.8','#4a90ff'],[13.1,'Jupiter 13.1','#ffa050']]]].forEach(([d,mx,l,col,y0,refs])=>{
+  g.fillStyle='#8d96c4';g.fillText(l,8,y0+20);g.strokeStyle='rgba(140,160,255,.25)';g.lineWidth=1;g.strokeRect(0,y0+28,640,112);
+  refs.forEach(([v,n,cc])=>{if(v>mx)return;const y=y0+138-v/mx*106;g.setLineDash([6,6]);g.strokeStyle=cc;g.beginPath();g.moveTo(0,y);g.lineTo(640,y);g.stroke();g.setLineDash([]);g.fillStyle=cc;g.fillText(n,560-n.length*4,y-4)});
+  g.strokeStyle=col;g.lineWidth=3;g.beginPath();d.forEach((v,i)=>{const x=i/N*640,y=y0+138-v/mx*106;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke()})}
+function drawCh(){CX.clearRect(0,0,640,300);CX.drawImage(chS,0,0);const c=cur,f=(jd-c.jdL)/(c.jdA-c.jdL);if(f<0||f>1)return;const x=f*640,i=Math.round(f*chMax.N);
+ CX.strokeStyle='#fff';CX.lineWidth=2;CX.beginPath();CX.moveTo(x,28);CX.lineTo(x,290);CX.stroke();
+ [[chMax.rs,chMax.mr,0,'#ffb347'],[chMax.vs,chMax.mv,150,'#7fd0ff']].forEach(([d,mx,y0,col])=>{CX.fillStyle=col;CX.beginPath();CX.arc(x,y0+138-d[i]/mx*106,7,0,TAU);CX.fill()})}
+$('chc').onclick=ev=>{const b=ev.target.getBoundingClientRect();setT(cur.jdL+(ev.clientX-b.left)/b.width*(cur.jdA-cur.jdL))};
+
+// ------------------------------------------------ phase dial
+const DL=$('dial').getContext('2d');
+function drawDial(pE,pJ,phi,need){const W=260,c=W/2,cy=130;DL.clearRect(0,0,260,300);
+ DL.strokeStyle='rgba(74,144,255,.5)';DL.lineWidth=2;DL.beginPath();DL.arc(c,cy,38,0,TAU);DL.stroke();DL.strokeStyle='rgba(255,160,80,.5)';DL.beginPath();DL.arc(c,cy,110,0,TAU);DL.stroke();
+ const aE=Math.atan2(pE[1],pE[0]),aJ=Math.atan2(pJ[1],pJ[0]),aN=aE+need*D2R;
+ const ok=Math.abs(((phi-need+540)%360)-180)<2;
+ DL.fillStyle=ok?'rgba(92,255,154,.25)':'rgba(255,179,71,.18)';DL.beginPath();DL.moveTo(c,cy);DL.arc(c,cy,95,-aE,-aE-phi*D2R,true);DL.fill();
+ DL.setLineDash([5,5]);DL.strokeStyle='#fff';DL.lineWidth=2;DL.beginPath();DL.moveTo(c,cy);DL.lineTo(c+120*Math.cos(aN),cy-120*Math.sin(aN));DL.stroke();DL.setLineDash([]);
+ const dot2=(r,a,col,s)=>{DL.fillStyle=col;DL.beginPath();DL.arc(c+r*Math.cos(a),cy-r*Math.sin(a),s,0,TAU);DL.fill()};
+ dot2(0,0,'#ffd27a',9);dot2(38,aE,'#4a90ff',8);dot2(110,aJ,'#ffa050',13);
+ DL.font='bold 26px system-ui';DL.fillStyle=ok?'#5cff9a':'#ffb347';DL.textAlign='center';DL.fillText('φ '+phi.toFixed(1)+'°',c,272);
+ DL.font='19px system-ui';DL.fillStyle='#8d96c4';DL.fillText('Hohmann needs '+need.toFixed(1)+'°',c,296);DL.textAlign='left'}
+
+// ------------------------------------------------ Jupiter approach camera
+const JC=$('jcv').getContext('2d'),jst=[];for(let i=0;i<70;i++)jst.push([Math.random()*250,Math.random()*250,Math.random()*1.3+.4]);
+const MOONS=[['Io',421700,1.769,1821,'#f2d36b'],['Europa',671034,3.551,1561,'#e8e2d0'],['Ganymede',1070412,7.155,2634,'#b9ab98'],['Callisto',1882709,16.689,2410,'#8c7f70']];
+function drawJC(cp,jp,t,dk){const S=250,c=S/2,d=sub(jp,cp),nd=nrm(d),vw=nd>1e-9?scl(d,1/nd):[1,0,0];let rt=cross(vw,[0,0,1]);rt=scl(rt,1/(nrm(rt)||1));const up=cross(rt,vw);
+ const fov=Math.max(.25,Math.min(60,2*Math.atan(1.6e6/dk)/D2R)),px=km=>Math.atan(km/dk)/D2R*S/fov;
+ JC.fillStyle='#02030a';JC.fillRect(0,0,S,S);JC.fillStyle='#fff';JC.globalAlpha=.55;jst.forEach(s=>JC.fillRect(s[0],s[1],s[2],s[2]));JC.globalAlpha=1;
+ const Rj=Math.max(1.5,px(71492)),sd=scl(jp,-1/nrm(jp)),sx=dot(sd,rt),sy=-dot(sd,up),ca=-dot(sd,vw),rot=Math.atan2(sy,sx);
+ const moon=(m,front)=>{const a=TAU*(t-JD0)/m[2]+m[1]*1e-6,o=[m[1]*Math.cos(a),m[1]*Math.sin(a),0],z=dot(o,vw);if((z<0)!==front)return;
+  const x=c+px(dot(o,rt)),y=c-px(dot(o,up)),r=Math.max(1.3,px(m[3]));if(!front&&Math.hypot(x-c,y-c)<Rj)return;
+  JC.fillStyle=m[4];JC.beginPath();JC.arc(x,y,r,0,TAU);JC.fill();if(Rj>4){JC.fillStyle='#9aa3cc';JC.font='10px system-ui';JC.fillText(m[0],x+r+2,y+3)}};
+ MOONS.forEach(m=>moon(m,false));
+ JC.save();JC.translate(c,c);JC.beginPath();JC.arc(0,0,Rj,0,TAU);JC.clip();
+ JC.fillStyle='#d9bf95';JC.fillRect(-Rj,-Rj,2*Rj,2*Rj);
+ [[-.9,.18,'#8a7360'],[-.55,.12,'#b98f6a'],[-.28,.14,'#a3714e'],[.06,.1,'#efe1c6'],[.22,.15,'#9c6a48'],[.5,.1,'#c49a74'],[.78,.16,'#8a7360']].forEach(([y,h,col])=>{JC.fillStyle=col;JC.fillRect(-Rj,y*Rj,2*Rj,h*Rj)});
+ const lon=TAU*((t*24/9.925)%1),gx=Math.sin(lon)*Math.cos(.38)*Rj;if(Math.cos(lon)>0&&Rj>6){JC.fillStyle='#c0583a';JC.beginPath();JC.ellipse(gx,.37*Rj,Rj*.12*Math.cos(lon)+1,Rj*.06,0,0,TAU);JC.fill()}
+ JC.rotate(rot);JC.beginPath();JC.rect(-Rj-2,-Rj-2,2*Rj+4,2*Rj+4);JC.moveTo(0,-Rj);JC.arc(0,0,Rj,-Math.PI/2,Math.PI/2);
+ const rx=Math.abs(ca)*Rj;if(ca>=0)JC.ellipse(0,0,rx,Rj,0,Math.PI/2,1.5*Math.PI,false);else JC.ellipse(0,0,rx,Rj,0,Math.PI/2,-Math.PI/2,true);
+ JC.fillStyle='rgba(2,3,10,.9)';JC.fill('evenodd');JC.restore();
+ MOONS.forEach(m=>moon(m,true))}
+
+// ------------------------------------------------ story
+const go=o=>{if(window.HV)HV.exit();if(o.mode)select(o.mode);if(o.t!=null)setT(o.t);if(o.d)distT=o.d;cine=!!o.cine;follow=!!o.follow;$('rate').value=o.rate||30;setPlay(o.play!==false);flashed=false;$('bf').classList.toggle('on',cine)};
+const B=D.best,HR=D.hohmann.real,HT=D.hohmann.textbook;
+const SC=[
+['Mission: Jupiter',`These are the real orbits of Earth and Jupiter on <b>${D.epoch}</b>, taken from JPL Horizons and propagated with my own Kepler solver. Drag to look around.`,()=>go({mode:'best',t:JD0,d:16,rate:90})],
+['The textbook world',`The classic textbook assumption: circular, coplanar orbits at <b>1 AU</b> and <b>5.2 AU</b>, with Jupiter <b>120°</b> ahead of Earth. The dashed curve is the Hohmann half-ellipse.`,()=>{TB=true;go({mode:'now',t:JD0,d:15,rate:30,play:false})}],
+['Hohmann transfer',`One tangential burn of <b>${HT.dv1.toFixed(2)} km/s</b> gives a = <b>${HT.a.toFixed(2)} AU</b>, e = <b>${HT.e.toFixed(3)}</b>. Half an orbit takes <b>${HT.tof.toFixed(2)} yr</b>, and Jupiter has to be waiting at aphelion.`,()=>go({mode:'hoh',d:14,rate:90})],
+['Timing is everything',`Jupiter moves about 83° during the flight, so launch only works when it is <b>${HT.phi.toFixed(1)}°</b> ahead (watch the dial). That happens once every <b>${HT.syn.toFixed(3)} yr</b> (synodic period).`,()=>go({mode:"hoh",t:JD0,d:13,rate:5})],
+['In a hurry? Solve Lambert',`Leave today instead and arrive in 1.6 yr. Lambert gives a much bigger ellipse that costs more Δv. Drag the time-of-flight slider below about 1.1 yr and the orbit turns into a <b>hyperbola</b> (e > 1).`,()=>{TB=true;$('tof').value=1.6;go({mode:'now',d:15,rate:30})}],
+['Back to reality',`Real Jupiter is <b>${D.phase_now.toFixed(1)}°</b> ahead today. My phase rule puts the next Hohmann window at <b>${D.window}</b>. Real orbits are eccentric and tilted, so the textbook ellipse won't quite fit any more.`,()=>go({mode:'best',t:JD0,d:14,rate:90})],
+['The porkchop plot',`<b>${PK.valid.toLocaleString()}</b> Lambert solves on real JPL orbits. Minimum C3 = <b>${B.C3.toFixed(0)} km²/s²</b> at launch <b>${B.launch}</b>, <b>${Math.round(B.jd_l-D.jd_window)} days</b> from what the Hohmann rule predicted. Click any pixel to fly it.`,()=>go({mode:'best',d:13,rate:60})],
+['Ride along',`Launch ${B.launch}. The spacecraft climbs out of the Sun's gravity well and slows from 38 to about 7 km/s. Time slows down as Jupiter gets close.`,()=>{go({mode:'best',cine:true,d:1,rate:30});setT(cur.jdL-6)}],
+['Capture',`We arrive at v∞ = <b>${B.vinf.toFixed(1)} km/s</b>. A braking burn at perijove of about <b>${joi(B.vinf).toFixed(2)} km/s</b> drops us into a 53-day orbit, which is Juno's real plan (its burn was 0.54 km/s).`,()=>{go({mode:'best',d:.6,rate:5,cine:true});setT(cur.jdA-3)}],
+['Thank you','Questions?<img src="argonaut_logo.png" alt="Project Argonaut" style="display:block;width:140px;margin:10px auto 2px">',()=>go({mode:'best',t:JD0,d:18,rate:90})]];
+function joi(vinf){const mu=1.26687e8,rp=71492+4200,a=Math.cbrt(mu*(53.5*86400/TAU)**2);return Math.sqrt(vinf*vinf+2*mu/rp)-Math.sqrt(mu*(2/rp-1/a))}
+function show(){if(scene<0){$('cap').style.display='none';return}SC[scene][2]();$('cap').style.display='block';$('cap').innerHTML='<b>'+(scene+1)+'/'+SC.length+' · '+SC[scene][0]+'</b><br>'+SC[scene][1]}
+const step=d=>{scene=Math.max(0,Math.min(SC.length-1,scene+d));show()};
+$('bs').onclick=()=>step(1);
+addEventListener('keydown',ev=>{if(ev.target.tagName=='INPUT')return;if(ev.key==='ArrowRight'||ev.key==='PageDown')step(1);else if(ev.key==='ArrowLeft'||ev.key==='PageUp')step(-1);
+ else if(ev.key===' '){ev.preventDefault();$('play').click()}else if(ev.key==='Escape'){scene=-1;show();$('wy').style.display='none'}});
+$('bo').onclick=()=>{cine=false;follow=false;distT=16;ph=.9;$('bf').classList.remove('on')};
+$('bi').onclick=()=>{cine=false;follow=false;distT=13;ph=.02;$('bf').classList.remove('on')};
+$('bf').onclick=()=>{cine=!cine;$('bf').classList.toggle('on',cine);if(window.HV&&HV.on)return;if(cine&&(jd<cur.jdL-30||jd>cur.jdA))setT(cur.jdL-6)};
+
+// ------------------------------------------------ main loop
+function craftAt(t){const c=cur;if(t<c.jdL)return null;if(t>=c.jdA)return P.state(599,t,c.tb)[0];const f=(t-c.jdL)/(c.jdA-c.jdL)*(c.P.length-1),k=Math.floor(f),q=f-k,A=c.P[k],Bp=c.P[Math.min(k+1,c.P.length-1)];
+ return[A[0]+(Bp[0]-A[0])*q,A[1]+(Bp[1]-A[1])*q,A[2]+(Bp[2]-A[2])*q]}
+function update(now){if(window.HV&&HV.on)return HV.update(now);const dt=Math.min(.05,(now-last)/1000);last=now;const c=cur;
+ if(playing){let k=1;if(cine&&jd<c.jdA&&c.jdA-jd<40)k=Math.max(.004,(c.jdA-jd)/40);if(cine&&jd>=c.jdA)k=.01;
+  jd+=dt*(+$('rate').value)*k;if(jd>JD0+SPAN)jd=JD0;sl.value=jd-JD0}
+ dist+=(distT-dist)*.06;
+ const [pE]=P.state(399,jd,TB),[pJ]=P.state(599,jd,TB),cp=craftAt(jd),inFlight=jd>=c.jdL&&jd<c.jdA;
+ const W=innerWidth,Hh=innerHeight;if(cv.width!==Math.floor(W*R.getPixelRatio())||cv.height!==Math.floor(Hh*R.getPixelRatio())){R.setSize(W,Hh,false);cam.aspect=W/Hh;cam.updateProjectionMatrix()}
+ if(cine){th+=dt*.15;let q,dd;if(!cp){q=pE;dd=.35}else if(inFlight){const sep=nrm(sub(pJ,cp));q=sep<1.2?scl([cp[0]+pJ[0],cp[1]+pJ[1],cp[2]+pJ[2]],.5):cp;dd=sep<1.2?Math.max(.03,sep*1.4):1.6}else{q=pJ;dd=.04}
+  tgtT.set(q[0],q[1],q[2]);distT=dd}else tgtT.set(0,0,0);
+ tgt.lerp(tgtT,.07);
+ cam.position.set(tgt.x+dist*Math.sin(ph)*Math.cos(th),tgt.y+dist*Math.sin(ph)*Math.sin(th),tgt.z+dist*Math.cos(ph));cam.lookAt(tgt);
+ const sz=(o,k)=>o.scale.setScalar(dist*o.userData.size*(k||1));
+ sz(sun);earthS.position.set(...pE);sz(earthS);jupS.position.set(...pJ);sz(jupS);
+ craft.visible=!!cp&&jd<c.jdA+1;if(craft.visible){craft.position.set(...cp);sz(craft,1.3)}
+ mkL.position.set(...c.r1);sz(mkL,.8);mkA.position.set(...c.r2);sz(mkA,.8);
+ phE.visible=phJ.visible=!cine;if(!cine){phE.set([[0,0,0],pE]);phJ.set([[0,0,0],pJ])}
+ // HUD
+ const phi=ang(pE,pJ),need=TB?H_TB.phi:HR.phi,nE=TB?H_TB.nE:Math.sqrt(MU/D.EL[399].A**3),nJ=TB?H_TB.nJ:Math.sqrt(MU/D.EL[599].A**3);
+ $('date').textContent=fd(jd);$('v1').textContent=phi.toFixed(1)+'°';$('v2').textContent=nrm(sub(pJ,pE)).toFixed(2)+' au';
+ let st,tm='';
+ if(inFlight){const i=Math.min(c.V.length-1,Math.round((jd-c.jdL)/(c.jdA-c.jdL)*(c.V.length-1))),sep=nrm(sub(pJ,cp));
+  $('k1').textContent='Spacecraft distance from Sun';$('v1').textContent=nrm(cp).toFixed(2)+' au';$('k2').textContent='Spacecraft speed';$('v2').textContent=(nrm(c.V[i])*KMS).toFixed(1)+' km/s';
+  st='🚀 En route · '+(sep<.5?Math.round(sep*AU).toLocaleString()+' km':sep.toFixed(2)+' au')+' to Jupiter';tm='T−'+Math.ceil(c.jdA-jd)+' d to arrival'}
+ else{$('k1').textContent='Earth–Jupiter phase angle';$('k2').textContent='Earth–Jupiter distance';
+  if(jd<c.jdL){st='Awaiting launch';tm='Launch in '+Math.ceil(c.jdL-jd)+' d'}else{st='🪐 Arrived at Jupiter';tm='v∞ '+c.vinf.toFixed(1)+' · JOI '+joi(c.vinf).toFixed(2)+' km/s'}
+  const w=((phi-need)%360+360)%360/((nE-nJ)/D2R)*YR;if(jd<c.jdL||jd>c.jdA)st+=' · Hohmann window in '+Math.round(w)+' d'}
+ $('st').textContent=st;$('tm').textContent=tm;
+ drawDial(pE,pJ,phi,need);drawCh();
+ if(jd>=c.jdA&&jd<c.jdA+2&&!flashed){flashed=true;flashUntil=now+2600}if(jd<c.jdA)flashed=false;
+ const fl=now<flashUntil;$('flash').style.opacity=fl?1:0;$('flash').textContent=fl?'JUPITER':'';
+ {const sep=cp?nrm(sub(pJ,cp)):9,show=!!cp&&sep<.8&&jd<c.jdA+40;$('jc').style.display=show?'block':'none';
+  if(show){const dk=jd>=c.jdA?2e6:Math.max(sep*AU,8e5);drawJC(jd>=c.jdA?sub(pJ,scl(pJ,dk/AU/nrm(pJ))):cp,pJ,jd,dk);
+   $('jct').innerHTML='<b>Jupiter from the spacecraft</b><br>'+(jd>=c.jdA?'53-day capture orbit':sep*AU<1e7?Math.round(sep*AU).toLocaleString()+' km':(sep*AU/1e6).toFixed(1)+' million km')+(jd<c.jdA?' · closing at '+c.vinf.toFixed(1)+' km/s':'')+'<br>Galilean moons (orbital phases illustrative)'}}
+ R.render(sc,cam)}
+function frame(now){update(now);requestAnimationFrame(frame)}
+select('best');setT(JD0);
+addEventListener("load",()=>{const h=new URLSearchParams(location.hash.slice(1));if(h.get('s')){scene=+h.get('s')-1;show();if(h.get('dt'))setT(jd+ +h.get('dt'));if(h.get('pause'))setPlay(false)}if(h.get('sim')){let t=performance.now();for(let k=0;k<+h.get('sim');k++){t+=16.7;update(t)}last=performance.now()}});
+requestAnimationFrame(frame);
+</script>
+<script src="history_view.js"></script></body></html>
